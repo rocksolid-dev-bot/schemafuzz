@@ -1,16 +1,5 @@
 import type { JsonSchema, JsonType, Mutant, MutateResult, Skipped } from "./types.js";
 
-/** The JSON type of a runtime value, per the JSON data model (not the schema's "integer" split). */
-function jsonTypeOf(value: unknown): JsonType {
-  if (value === null) return "null";
-  if (Array.isArray(value)) return "array";
-  const t = typeof value;
-  if (t === "string") return "string";
-  if (t === "number") return "number";
-  if (t === "boolean") return "boolean";
-  return "object";
-}
-
 /** One representative value per JSON type, used as "a value of a different type". */
 const TYPE_CANDIDATES: Record<Exclude<JsonType, "integer">, unknown> = {
   string: "mutant-string",
@@ -26,7 +15,7 @@ function escapeToken(token: string): string {
   return token.replace(/~/g, "~0").replace(/\//g, "~1");
 }
 
-function typeMutator(schema: JsonSchema, baseline: unknown): MutateResult {
+function typeMutator(schema: JsonSchema, _baseline: unknown): MutateResult {
   const mutants: Mutant[] = [];
   const skipped: Skipped[] = [];
 
@@ -43,9 +32,6 @@ function typeMutator(schema: JsonSchema, baseline: unknown): MutateResult {
     Array.isArray(schema.type) ? schema.type : [schema.type]
   );
 
-  // "number" candidates are still valid under "integer" (see jsonTypeOf note),
-  // so only exclude "number" from the candidate pool when the schema itself
-  // allows "number" (integer alone does not make plain numbers acceptable).
   const candidateTypes = (Object.keys(TYPE_CANDIDATES) as Array<
     Exclude<JsonType, "integer">
   >).filter((t) => !allowed.has(t));
