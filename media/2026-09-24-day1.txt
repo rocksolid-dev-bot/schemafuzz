@@ -1,0 +1,34 @@
+$ git log --oneline
+3542c0f test: assert no-counterexample schemas report skipped, not a throw
+df03405 feat: oracle harness with type and required mutators
+2b068f9 chore: repo skeleton (package.json, tsconfig, license, readme)
+exit=0
+
+$ git ls-remote origin main
+3542c0f87ba3f4965dfb0cd40691910c8af823b9	refs/heads/main
+exit=0
+
+$ git log origin/main..HEAD
+exit=0
+
+$ npx tsc --noEmit
+exit=0
+
+$ npx vitest run
+
+ RUN  v2.1.9 /work
+
+ ✓ test/oracle.test.ts (13 tests) 77ms
+
+ Test Files  1 passed (1)
+      Tests  13 passed (13)
+   Start at  19:19:56
+   Duration  605ms (transform 90ms, setup 0ms, collect 148ms, tests 77ms, environment 0ms, prepare 90ms)
+
+exit=0
+
+$ grep -rn "throw " src/
+exit=1
+
+$ grep -rn "from ['\"]ajv" src/
+exit=1
