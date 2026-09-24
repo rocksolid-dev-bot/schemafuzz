@@ -11,11 +11,20 @@ for (const fixture of fixtures) {
       expect(ajv.validate(fixture.schema, fixture.baseline)).toBe(true);
     });
 
-    const { mutants } = mutate(fixture.schema, fixture.baseline);
+    const { mutants, skipped } = mutate(fixture.schema, fixture.baseline);
 
-    it("produces at least one mutant", () => {
-      expect(mutants.length).toBeGreaterThan(0);
-    });
+    if (fixture.expectMutants) {
+      it("produces at least one mutant", () => {
+        expect(mutants.length).toBeGreaterThan(0);
+      });
+    } else {
+      it("produces no mutants (no counterexample exists)", () => {
+        expect(mutants).toEqual([]);
+      });
+      it("explains why, via a non-empty skipped list", () => {
+        expect(skipped.length).toBeGreaterThan(0);
+      });
+    }
 
     for (const mutant of mutants) {
       it(`rejects mutant [${mutant.keyword} @ "${mutant.path}"]: ${mutant.reason}`, () => {

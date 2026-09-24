@@ -11,6 +11,13 @@ export interface Fixture {
   schema: JsonSchema;
   /** A value the schema must accept. */
   baseline: unknown;
+  /**
+   * Whether this fixture is expected to yield at least one mutant. False for
+   * an unconstrained schema (e.g. `{}`), which has no counterexample: "no
+   * mutant exists" is a returned value (a non-empty `skipped`), not a
+   * failure.
+   */
+  expectMutants: boolean;
 }
 
 export const fixtures: Fixture[] = [
@@ -22,15 +29,24 @@ export const fixtures: Fixture[] = [
       properties: { name: { type: "string" } },
     },
     baseline: { name: "Ada" },
+    expectMutants: true,
   },
   {
     name: "plain string",
     schema: { type: "string", minLength: 2 },
     baseline: "hello",
+    expectMutants: true,
   },
   {
     name: "number or null",
     schema: { type: ["number", "null"] },
     baseline: 42,
+    expectMutants: true,
+  },
+  {
+    name: "unconstrained schema (no counterexample)",
+    schema: {},
+    baseline: { a: 1 },
+    expectMutants: false,
   },
 ];
