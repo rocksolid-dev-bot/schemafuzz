@@ -1,0 +1,48 @@
+$ node -v
+v18.19.1
+exit=0
+$ npm ci
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+exit=0
+$ npx tsc --noEmit
+exit=0
+$ npx vitest run
+
+ RUN  v2.1.9 /work/code
+
+ ✓ test/oracle.test.ts (141 tests) 178ms
+
+ Test Files  1 passed (1)
+      Tests  141 passed (141)
+   Start at  19:20:12
+   Duration  1.09s (transform 336ms, setup 0ms, collect 462ms, tests 178ms, environment 0ms, prepare 104ms)
+
+exit=0
+$ npm run build
+
+> schemafuzz@0.0.0 build
+> tsc
+
+exit=0
+$ sh scripts/invariants.sh
+--- no throws in src/ (errors are values) ---
+ok: no throws
+--- ajv is never imported by the shipped library ---
+ok: no ajv import
+--- every registered mutator keyword is exercised by a fixture ---
+(asserted by the coverage tests in test/oracle.test.ts)
+exit=0
+$ git log --oneline -6
+aaae21a feat: land seven structural mutators (minItems, maxItems, uniqueItems, additionalProperties, minProperties, maxProperties, propertyNames)
+b48cd19 test: assert ajv blames the keyword each mutant claims
+2711189 chore: add scripts/invariants.sh so the gate greps are the bytes that ran
+f32f905 docs: day 3 close-out capture
+d11e51a feat: land numeric mutators (minimum, maximum, exclusiveMinimum, exclusiveMaximum, multipleOf)
+8b5af1c feat: land string/enum mutators (minLength, maxLength, pattern, enum, const) with fixtures and coverage tests
+exit=0
+$ git status --short
+exit=0
