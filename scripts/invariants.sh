@@ -9,7 +9,6 @@ if grep -rn "throw " src/; then echo "FAIL: src/ throws"; status=1; else echo "o
 echo "--- ajv is never imported by the shipped library ---"
 if grep -rn "from ['\"]ajv" src/; then echo "FAIL: src/ imports ajv"; status=1; else echo "ok: no ajv import"; fi
 
-echo "--- every registered mutator keyword is exercised by a fixture ---"
-echo "(asserted by the coverage tests in test/oracle.test.ts)"
+echo "note: mutator-keyword coverage is asserted by the coverage tests in test/oracle.test.ts, not here"
 
 exit $status
