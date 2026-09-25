@@ -12,6 +12,10 @@ All notable changes to schemafuzz are documented here. The format follows
   negations, and never throws. `ajv` is a devDependency used only by the tests, as an
   independent-method oracle; the library imports it nowhere.
 - `type` and `required` mutators.
+- `minLength`, `maxLength`, `pattern`, `enum`, `const` mutators, backed by a `MUTATORS` registry
+  (`MUTATOR_KEYWORDS`) so every registered mutator is exercised by at least one fixture, checked
+  by a per-keyword coverage test.
+- `minimum`, `maximum`, `exclusiveMinimum`, `exclusiveMaximum`, `multipleOf` mutators.
 
 ### Changed
 

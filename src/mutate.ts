@@ -297,6 +297,144 @@ function enumConstMutator(schema: JsonSchema, _baseline: unknown): MutateResult 
   return { mutants, skipped };
 }
 
+function minimumMutator(schema: JsonSchema, _baseline: unknown): MutateResult {
+  const mutants: Mutant[] = [];
+  const skipped: Skipped[] = [];
+
+  const m = schema.minimum;
+  if (typeof m !== "number") {
+    skipped.push({
+      keyword: "minimum",
+      path: "",
+      reason: "schema has no minimum keyword to negate",
+    });
+    return { mutants, skipped };
+  }
+
+  mutants.push({
+    value: m - 1,
+    keyword: "minimum",
+    path: "",
+    reason: `${m - 1} is below minimum ${m}`,
+  });
+
+  return { mutants, skipped };
+}
+
+function maximumMutator(schema: JsonSchema, _baseline: unknown): MutateResult {
+  const mutants: Mutant[] = [];
+  const skipped: Skipped[] = [];
+
+  const m = schema.maximum;
+  if (typeof m !== "number") {
+    skipped.push({
+      keyword: "maximum",
+      path: "",
+      reason: "schema has no maximum keyword to negate",
+    });
+    return { mutants, skipped };
+  }
+
+  mutants.push({
+    value: m + 1,
+    keyword: "maximum",
+    path: "",
+    reason: `${m + 1} is above maximum ${m}`,
+  });
+
+  return { mutants, skipped };
+}
+
+function exclusiveMinimumMutator(schema: JsonSchema, _baseline: unknown): MutateResult {
+  const mutants: Mutant[] = [];
+  const skipped: Skipped[] = [];
+
+  const m = schema.exclusiveMinimum;
+  if (typeof m !== "number") {
+    skipped.push({
+      keyword: "exclusiveMinimum",
+      path: "",
+      reason: "schema has no exclusiveMinimum keyword to negate",
+    });
+    return { mutants, skipped };
+  }
+
+  mutants.push({
+    value: m,
+    keyword: "exclusiveMinimum",
+    path: "",
+    reason: `the bound ${m} itself is excluded by exclusiveMinimum`,
+  });
+
+  return { mutants, skipped };
+}
+
+function exclusiveMaximumMutator(schema: JsonSchema, _baseline: unknown): MutateResult {
+  const mutants: Mutant[] = [];
+  const skipped: Skipped[] = [];
+
+  const m = schema.exclusiveMaximum;
+  if (typeof m !== "number") {
+    skipped.push({
+      keyword: "exclusiveMaximum",
+      path: "",
+      reason: "schema has no exclusiveMaximum keyword to negate",
+    });
+    return { mutants, skipped };
+  }
+
+  mutants.push({
+    value: m,
+    keyword: "exclusiveMaximum",
+    path: "",
+    reason: `the bound ${m} itself is excluded by exclusiveMaximum`,
+  });
+
+  return { mutants, skipped };
+}
+
+function multipleOfMutator(schema: JsonSchema, baseline: unknown): MutateResult {
+  const mutants: Mutant[] = [];
+  const skipped: Skipped[] = [];
+
+  const k = schema.multipleOf;
+  if (typeof k !== "number") {
+    skipped.push({
+      keyword: "multipleOf",
+      path: "",
+      reason: "schema has no multipleOf keyword to negate",
+    });
+    return { mutants, skipped };
+  }
+
+  if (k <= 0) {
+    skipped.push({
+      keyword: "multipleOf",
+      path: "",
+      reason: `multipleOf ${k} is not a positive number`,
+    });
+    return { mutants, skipped };
+  }
+
+  if (typeof baseline !== "number" || !Number.isFinite(baseline)) {
+    skipped.push({
+      keyword: "multipleOf",
+      path: "",
+      reason: "baseline is not a finite number, so no midpoint mutant can be built",
+    });
+    return { mutants, skipped };
+  }
+
+  mutants.push({
+    value: baseline + k / 2,
+    keyword: "multipleOf",
+    path: "",
+    reason: `${baseline} + ${k}/2 = ${baseline + k / 2} is not a multiple of ${k}`,
+  });
+
+  return { mutants, skipped };
+}
+
 /**
  * Generate the mutants (values that must be rejected) and skipped negations
  * (keywords this version cannot negate for this schema) for a schema and a
@@ -315,6 +453,11 @@ const MUTATORS: Array<{
   { keywords: ["maxLength"], run: maxLengthMutator },
   { keywords: ["pattern"], run: patternMutator },
   { keywords: ["enum", "const"], run: enumConstMutator },
+  { keywords: ["minimum"], run: minimumMutator },
+  { keywords: ["maximum"], run: maximumMutator },
+  { keywords: ["exclusiveMinimum"], run: exclusiveMinimumMutator },
+  { keywords: ["exclusiveMaximum"], run: exclusiveMaximumMutator },
+  { keywords: ["multipleOf"], run: multipleOfMutator },
 ];
 
 /** Every keyword any registered mutator can emit. The fixture set must exercise all of them. */

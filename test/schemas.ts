@@ -89,4 +89,31 @@ export const fixtures: Fixture[] = [
     baseline: 42,
     expectMutants: true,
   },
+  {
+    name: "number with minimum and maximum",
+    schema: { type: "number", minimum: 0, maximum: 10 },
+    baseline: 5,
+    expectMutants: true,
+  },
+  {
+    name: "number with exclusiveMinimum and exclusiveMaximum",
+    schema: { type: "number", exclusiveMinimum: 0, exclusiveMaximum: 10 },
+    baseline: 5,
+    expectMutants: true,
+  },
+  {
+    name: "integer with minimum and multipleOf",
+    schema: { type: "integer", minimum: 0, multipleOf: 2 },
+    baseline: 4,
+    expectMutants: true,
+  },
+  {
+    // Baseline is 0.2, not 0.3: measured against ajv 8, 0.3 / 0.1 is
+    // 2.9999999999999996 in IEEE-754, so ajv rejects the baseline itself.
+    // 0.2 / 0.1 === 2 exactly, so it is a clean baseline.
+    name: "number with multipleOf (float baseline)",
+    schema: { type: "number", multipleOf: 0.1 },
+    baseline: 0.2,
+    expectMutants: true,
+  },
 ];
