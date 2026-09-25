@@ -116,4 +116,75 @@ export const fixtures: Fixture[] = [
     baseline: 0.2,
     expectMutants: true,
   },
+  {
+    name: "array with minItems",
+    schema: { type: "array", items: { type: "number" }, minItems: 2 },
+    baseline: [1, 2, 3],
+    expectMutants: true,
+  },
+  {
+    // Extends with new unique values (not a duplicate), so the blame list is
+    // ["maxItems"] alone rather than confounded with uniqueItems.
+    name: "array with maxItems",
+    schema: { type: "array", items: { type: "number" }, maxItems: 3 },
+    baseline: [1, 2],
+    expectMutants: true,
+  },
+  {
+    name: "array with uniqueItems",
+    schema: { type: "array", items: { type: "number" }, uniqueItems: true },
+    baseline: [1, 2],
+    expectMutants: true,
+  },
+  {
+    name: "object with additionalProperties false",
+    schema: {
+      type: "object",
+      properties: { a: { type: "number" } },
+      additionalProperties: false,
+    },
+    baseline: { a: 1 },
+    expectMutants: true,
+  },
+  {
+    // Drops a non-required key ("b"), not a required one, so the blame list
+    // is ["minProperties"] alone rather than confounded with required.
+    name: "object with minProperties and a required key",
+    schema: { type: "object", required: ["a"], minProperties: 2 },
+    baseline: { a: 1, b: 2 },
+    expectMutants: true,
+  },
+  {
+    name: "object with maxProperties",
+    schema: { type: "object", maxProperties: 2 },
+    baseline: { a: 1, b: 2 },
+    expectMutants: true,
+  },
+  {
+    name: "object with propertyNames pattern",
+    schema: { type: "object", propertyNames: { pattern: "^[a-z]+$" } },
+    baseline: { abc: 1 },
+    expectMutants: true,
+  },
+  {
+    name: "array with minItems 0 (unnegatable)",
+    schema: { type: "array", minItems: 0 },
+    baseline: [],
+    expectMutants: true,
+    expectSkippedKeywords: ["minItems"],
+  },
+  {
+    name: "array with uniqueItems false (unnegatable)",
+    schema: { type: "array", uniqueItems: false },
+    baseline: [1, 1],
+    expectMutants: true,
+    expectSkippedKeywords: ["uniqueItems"],
+  },
+  {
+    name: "object where every present key is required (minProperties unnegatable)",
+    schema: { type: "object", required: ["a"], minProperties: 1 },
+    baseline: { a: 1 },
+    expectMutants: true,
+    expectSkippedKeywords: ["minProperties"],
+  },
 ];

@@ -435,6 +435,366 @@ function multipleOfMutator(schema: JsonSchema, baseline: unknown): MutateResult 
   return { mutants, skipped };
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function minItemsMutator(schema: JsonSchema, baseline: unknown): MutateResult {
+  const mutants: Mutant[] = [];
+  const skipped: Skipped[] = [];
+
+  const n = schema.minItems;
+  if (typeof n !== "number") {
+    skipped.push({
+      keyword: "minItems",
+      path: "",
+      reason: "schema has no minItems keyword to negate",
+    });
+    return { mutants, skipped };
+  }
+
+  if (!Array.isArray(baseline)) {
+    skipped.push({
+      keyword: "minItems",
+      path: "",
+      reason: "baseline is not a JSON array, so no element can be removed",
+    });
+    return { mutants, skipped };
+  }
+
+  if (n <= 0) {
+    skipped.push({
+      keyword: "minItems",
+      path: "",
+      reason: `minItems ${n} has no shorter non-negative length to truncate to`,
+    });
+    return { mutants, skipped };
+  }
+
+  const mutated = baseline.slice(0, n - 1);
+  mutants.push({
+    value: mutated,
+    keyword: "minItems",
+    path: "",
+    reason: `truncated to length ${n - 1}, below minItems ${n}`,
+  });
+
+  return { mutants, skipped };
+}
+
+function maxItemsMutator(schema: JsonSchema, baseline: unknown): MutateResult {
+  const mutants: Mutant[] = [];
+  const skipped: Skipped[] = [];
+
+  const n = schema.maxItems;
+  if (typeof n !== "number") {
+    skipped.push({
+      keyword: "maxItems",
+      path: "",
+      reason: "schema has no maxItems keyword to negate",
+    });
+    return { mutants, skipped };
+  }
+
+  if (!Array.isArray(baseline)) {
+    skipped.push({
+      keyword: "maxItems",
+      path: "",
+      reason: "baseline is not a JSON array, so no element can be appended",
+    });
+    return { mutants, skipped };
+  }
+
+  if (!Number.isInteger(n) || n < 0) {
+    skipped.push({
+      keyword: "maxItems",
+      path: "",
+      reason: `maxItems ${n} is not a non-negative integer`,
+    });
+    return { mutants, skipped };
+  }
+
+  // Extend with NEW unique values rather than duplicating an existing one:
+  // measured against a schema that also sets uniqueItems: true, duplicating
+  // the last element is blamed ["maxItems", "uniqueItems"] — a confounded
+  // mutant. New values are blamed ["maxItems"] alone.
+  const numeric = baseline.every((v) => typeof v === "number");
+  const mutated: unknown[] = [...baseline];
+  while (mutated.length <= n) {
+    if (numeric) {
+      let candidate = mutated.length;
+      while (mutated.includes(candidate)) candidate++;
+      mutated.push(candidate);
+    } else {
+      mutated.push({ "schemafuzz-extra": mutated.length });
+    }
+  }
+
+  mutants.push({
+    value: mutated,
+    keyword: "maxItems",
+    path: "",
+    reason: `extended to length ${mutated.length} with new unique values, above maxItems ${n}`,
+  });
+
+  return { mutants, skipped };
+}
+
+function uniqueItemsMutator(schema: JsonSchema, baseline: unknown): MutateResult {
+  const mutants: Mutant[] = [];
+  const skipped: Skipped[] = [];
+
+  if (schema.uniqueItems !== true) {
+    skipped.push({
+      keyword: "uniqueItems",
+      path: "",
+      reason:
+        schema.uniqueItems === false
+          ? "uniqueItems is false, so duplicates are not forbidden"
+          : "schema has no uniqueItems keyword to negate",
+    });
+    return { mutants, skipped };
+  }
+
+  if (!Array.isArray(baseline)) {
+    skipped.push({
+      keyword: "uniqueItems",
+      path: "",
+      reason: "baseline is not a JSON array",
+    });
+    return { mutants, skipped };
+  }
+
+  if (baseline.length === 0) {
+    skipped.push({
+      keyword: "uniqueItems",
+      path: "",
+      reason: "baseline is empty, so there is no element to duplicate",
+    });
+    return { mutants, skipped };
+  }
+
+  const mutated = [...baseline, baseline[0]];
+  mutants.push({
+    value: mutated,
+    keyword: "uniqueItems",
+    path: "",
+    reason: "appended a duplicate of the first element",
+  });
+
+  return { mutants, skipped };
+}
+
+function additionalPropertiesMutator(schema: JsonSchema, baseline: unknown): MutateResult {
+  const mutants: Mutant[] = [];
+  const skipped: Skipped[] = [];
+
+  if (schema.additionalProperties !== false) {
+    skipped.push({
+      keyword: "additionalProperties",
+      path: "",
+      reason:
+        schema.additionalProperties === undefined
+          ? "schema has no additionalProperties keyword to negate"
+          : "additionalProperties is not false, so extra keys are not forbidden",
+    });
+    return { mutants, skipped };
+  }
+
+  if (!isPlainObject(baseline)) {
+    skipped.push({
+      keyword: "additionalProperties",
+      path: "",
+      reason: "baseline is not a JSON object",
+    });
+    return { mutants, skipped };
+  }
+
+  const mutated = { ...baseline, "schemafuzz-extra": true };
+  mutants.push({
+    value: mutated,
+    keyword: "additionalProperties",
+    path: "",
+    reason: 'added key "schemafuzz-extra", forbidden by additionalProperties: false',
+  });
+
+  return { mutants, skipped };
+}
+
+function minPropertiesMutator(schema: JsonSchema, baseline: unknown): MutateResult {
+  const mutants: Mutant[] = [];
+  const skipped: Skipped[] = [];
+
+  const n = schema.minProperties;
+  if (typeof n !== "number") {
+    skipped.push({
+      keyword: "minProperties",
+      path: "",
+      reason: "schema has no minProperties keyword to negate",
+    });
+    return { mutants, skipped };
+  }
+
+  if (!isPlainObject(baseline)) {
+    skipped.push({
+      keyword: "minProperties",
+      path: "",
+      reason: "baseline is not a JSON object",
+    });
+    return { mutants, skipped };
+  }
+
+  const required = new Set(schema.required ?? []);
+  const droppable = Object.keys(baseline).find((k) => !required.has(k));
+
+  if (droppable === undefined) {
+    skipped.push({
+      keyword: "minProperties",
+      path: "",
+      reason:
+        "every present key is required, so no non-required key can be dropped without confounding with required",
+    });
+    return { mutants, skipped };
+  }
+
+  const mutated = { ...baseline };
+  delete mutated[droppable];
+
+  if (Object.keys(mutated).length >= n) {
+    skipped.push({
+      keyword: "minProperties",
+      path: "",
+      reason: `dropping non-required key "${droppable}" still leaves ${Object.keys(mutated).length} properties, at or above minProperties ${n}`,
+    });
+    return { mutants, skipped };
+  }
+
+  mutants.push({
+    value: mutated,
+    keyword: "minProperties",
+    path: "",
+    reason: `dropped non-required key "${droppable}", leaving ${Object.keys(mutated).length} properties, below minProperties ${n}`,
+  });
+
+  return { mutants, skipped };
+}
+
+function maxPropertiesMutator(schema: JsonSchema, baseline: unknown): MutateResult {
+  const mutants: Mutant[] = [];
+  const skipped: Skipped[] = [];
+
+  const n = schema.maxProperties;
+  if (typeof n !== "number") {
+    skipped.push({
+      keyword: "maxProperties",
+      path: "",
+      reason: "schema has no maxProperties keyword to negate",
+    });
+    return { mutants, skipped };
+  }
+
+  if (!isPlainObject(baseline)) {
+    skipped.push({
+      keyword: "maxProperties",
+      path: "",
+      reason: "baseline is not a JSON object",
+    });
+    return { mutants, skipped };
+  }
+
+  if (!Number.isInteger(n) || n < 0) {
+    skipped.push({
+      keyword: "maxProperties",
+      path: "",
+      reason: `maxProperties ${n} is not a non-negative integer`,
+    });
+    return { mutants, skipped };
+  }
+
+  const mutated: Record<string, unknown> = { ...baseline };
+  let i = 0;
+  while (Object.keys(mutated).length <= n) {
+    let key = `schemafuzz-extra-${i}`;
+    while (key in mutated) {
+      i++;
+      key = `schemafuzz-extra-${i}`;
+    }
+    mutated[key] = true;
+    i++;
+  }
+
+  mutants.push({
+    value: mutated,
+    keyword: "maxProperties",
+    path: "",
+    reason: `added keys until ${Object.keys(mutated).length} properties, above maxProperties ${n}`,
+  });
+
+  return { mutants, skipped };
+}
+
+/** Ordered candidate pool for negating `propertyNames.pattern`. */
+const PROPERTY_NAME_CANDIDATES = ["SCHEMAFUZZ-1", "!", "\u0000"];
+
+function propertyNamesMutator(schema: JsonSchema, baseline: unknown): MutateResult {
+  const mutants: Mutant[] = [];
+  const skipped: Skipped[] = [];
+
+  const pn = schema.propertyNames;
+  if (!isPlainObject(pn) || typeof pn.pattern !== "string") {
+    skipped.push({
+      keyword: "propertyNames",
+      path: "",
+      reason: "schema has no propertyNames.pattern keyword to negate",
+    });
+    return { mutants, skipped };
+  }
+
+  if (!isPlainObject(baseline)) {
+    skipped.push({
+      keyword: "propertyNames",
+      path: "",
+      reason: "baseline is not a JSON object",
+    });
+    return { mutants, skipped };
+  }
+
+  let re: RegExp;
+  try {
+    re = new RegExp(pn.pattern);
+  } catch {
+    skipped.push({
+      keyword: "propertyNames",
+      path: "",
+      reason: `propertyNames.pattern "${pn.pattern}" is not a valid RegExp`,
+    });
+    return { mutants, skipped };
+  }
+
+  const candidate = PROPERTY_NAME_CANDIDATES.find(
+    (c) => !re.test(c) && !(c in baseline)
+  );
+
+  if (candidate === undefined) {
+    skipped.push({
+      keyword: "propertyNames",
+      path: "",
+      reason: `propertyNames.pattern "${pn.pattern}" matches every candidate in the negation pool`,
+    });
+    return { mutants, skipped };
+  }
+
+  const mutated = { ...baseline, [candidate]: true };
+  mutants.push({
+    value: mutated,
+    keyword: "propertyNames",
+    path: `/${escapeToken(candidate)}`,
+    reason: `added key "${candidate}", whose name does not match propertyNames.pattern "${pn.pattern}"`,
+  });
+
+  return { mutants, skipped };
+}
+
 /**
  * Generate the mutants (values that must be rejected) and skipped negations
  * (keywords this version cannot negate for this schema) for a schema and a
@@ -458,6 +818,13 @@ const MUTATORS: Array<{
   { keywords: ["exclusiveMinimum"], run: exclusiveMinimumMutator },
   { keywords: ["exclusiveMaximum"], run: exclusiveMaximumMutator },
   { keywords: ["multipleOf"], run: multipleOfMutator },
+  { keywords: ["minItems"], run: minItemsMutator },
+  { keywords: ["maxItems"], run: maxItemsMutator },
+  { keywords: ["uniqueItems"], run: uniqueItemsMutator },
+  { keywords: ["additionalProperties"], run: additionalPropertiesMutator },
+  { keywords: ["minProperties"], run: minPropertiesMutator },
+  { keywords: ["maxProperties"], run: maxPropertiesMutator },
+  { keywords: ["propertyNames"], run: propertyNamesMutator },
 ];
 
 /** Every keyword any registered mutator can emit. The fixture set must exercise all of them. */

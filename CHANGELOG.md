@@ -16,6 +16,11 @@ All notable changes to schemafuzz are documented here. The format follows
   (`MUTATOR_KEYWORDS`) so every registered mutator is exercised by at least one fixture, checked
   by a per-keyword coverage test.
 - `minimum`, `maximum`, `exclusiveMinimum`, `exclusiveMaximum`, `multipleOf` mutators.
+- `minItems`, `maxItems`, `uniqueItems`, `additionalProperties`, `minProperties`,
+  `maxProperties`, `propertyNames` mutators (structural keywords), with fixtures designed to
+  avoid the confounds ajv's blame list can expose: `maxItems` extends with new unique values
+  rather than duplicating (avoids a false `uniqueItems` co-blame), and `minProperties` drops a
+  non-required key (avoids a false `required` co-blame).
 
 ### Changed
 

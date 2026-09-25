@@ -53,5 +53,12 @@ export interface JsonSchema {
   exclusiveMinimum?: number;
   exclusiveMaximum?: number;
   multipleOf?: number;
+  minItems?: number;
+  maxItems?: number;
+  uniqueItems?: boolean;
+  additionalProperties?: boolean;
+  minProperties?: number;
+  maxProperties?: number;
+  propertyNames?: JsonSchema;
   [key: string]: unknown;
 }
