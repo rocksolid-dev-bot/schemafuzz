@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { mutate, MUTATOR_KEYWORDS } from "../src/mutate.js";
 import { fixtures } from "./schemas.js";
 
-const ajv = new Ajv();
+const ajv = new Ajv({ allErrors: true });
 
 for (const fixture of fixtures) {
   describe(fixture.name, () => {
@@ -32,6 +32,18 @@ for (const fixture of fixtures) {
           ajv.validate(fixture.schema, mutant.value),
           `expected ajv to reject the "${mutant.keyword}" mutant at "${mutant.path}" (${mutant.reason})`
         ).toBe(false);
+      });
+    }
+
+    if (mutants.length > 0) {
+      it(`is rejected for the keyword it claims`, () => {
+        const validate = ajv.compile(fixture.schema);
+        for (const mutant of mutants) {
+          const accepted = validate(mutant.value);
+          expect(accepted).toBe(false);
+          const blamed = (validate.errors ?? []).map((e) => e.keyword);
+          expect(blamed).toContain(mutant.keyword);
+        }
       });
     }
 
