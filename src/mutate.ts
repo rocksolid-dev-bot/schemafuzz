@@ -106,6 +106,197 @@ function requiredMutator(schema: JsonSchema, baseline: unknown): MutateResult {
   return { mutants, skipped };
 }
 
+function minLengthMutator(schema: JsonSchema, _baseline: unknown): MutateResult {
+  const mutants: Mutant[] = [];
+  const skipped: Skipped[] = [];
+
+  const n = schema.minLength;
+  if (typeof n !== "number") {
+    skipped.push({
+      keyword: "minLength",
+      path: "",
+      reason: "schema has no minLength keyword to negate",
+    });
+    return { mutants, skipped };
+  }
+
+  if (n <= 0) {
+    skipped.push({
+      keyword: "minLength",
+      path: "",
+      reason: `minLength ${n} has no shorter non-negative-length string to build`,
+    });
+    return { mutants, skipped };
+  }
+
+  mutants.push({
+    value: "a".repeat(n - 1),
+    keyword: "minLength",
+    path: "",
+    reason: `built an ASCII string of length ${n - 1}, below minLength ${n}`,
+  });
+
+  return { mutants, skipped };
+}
+
+function maxLengthMutator(schema: JsonSchema, _baseline: unknown): MutateResult {
+  const mutants: Mutant[] = [];
+  const skipped: Skipped[] = [];
+
+  const n = schema.maxLength;
+  if (typeof n !== "number") {
+    skipped.push({
+      keyword: "maxLength",
+      path: "",
+      reason: "schema has no maxLength keyword to negate",
+    });
+    return { mutants, skipped };
+  }
+
+  if (!Number.isInteger(n) || n < 0) {
+    skipped.push({
+      keyword: "maxLength",
+      path: "",
+      reason: `maxLength ${n} is not a non-negative integer`,
+    });
+    return { mutants, skipped };
+  }
+
+  if (n > 10000) {
+    skipped.push({
+      keyword: "maxLength",
+      path: "",
+      reason: `maxLength ${n} is too large to allocate a mutant string for`,
+    });
+    return { mutants, skipped };
+  }
+
+  mutants.push({
+    value: "a".repeat(n + 1),
+    keyword: "maxLength",
+    path: "",
+    reason: `built an ASCII string of length ${n + 1}, above maxLength ${n}`,
+  });
+
+  return { mutants, skipped };
+}
+
+/** Ordered candidate pool for negating `pattern`. JSON Schema `pattern` is
+ * unanchored (measured: `{pattern: "abc"}` accepts `"xxabcxx"`), so testing
+ * each candidate with `re.test()` asks exactly the question ajv will ask. */
+const PATTERN_CANDIDATES = ["schemafuzz-pattern-mutant", "!", "\u0000", ""];
+
+function patternMutator(schema: JsonSchema, _baseline: unknown): MutateResult {
+  const mutants: Mutant[] = [];
+  const skipped: Skipped[] = [];
+
+  const p = schema.pattern;
+  if (typeof p !== "string") {
+    skipped.push({
+      keyword: "pattern",
+      path: "",
+      reason: "schema has no pattern keyword to negate",
+    });
+    return { mutants, skipped };
+  }
+
+  let re: RegExp;
+  try {
+    re = new RegExp(p);
+  } catch {
+    skipped.push({
+      keyword: "pattern",
+      path: "",
+      reason: `pattern "${p}" is not a valid RegExp`,
+    });
+    return { mutants, skipped };
+  }
+
+  const candidate = PATTERN_CANDIDATES.find((c) => !re.test(c));
+  if (candidate === undefined) {
+    skipped.push({
+      keyword: "pattern",
+      path: "",
+      reason: `pattern "${p}" matches every candidate in the negation pool`,
+    });
+    return { mutants, skipped };
+  }
+
+  mutants.push({
+    value: candidate,
+    keyword: "pattern",
+    path: "",
+    reason: `candidate ${JSON.stringify(candidate)} does not match pattern "${p}"`,
+  });
+
+  return { mutants, skipped };
+}
+
+/** Ordered candidate pool for negating `enum`/`const` (a one-member enum). */
+const ENUM_CANDIDATES: unknown[] = [
+  "schemafuzz-not-a-member",
+  0,
+  null,
+  false,
+  { schemafuzz: "not-a-member" },
+];
+
+function deepEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (typeof a !== typeof b) return false;
+  if (a === null || b === null) return false;
+  if (typeof a !== "object") return false;
+  const aKeys = Object.keys(a as Record<string, unknown>);
+  const bKeys = Object.keys(b as Record<string, unknown>);
+  if (aKeys.length !== bKeys.length) return false;
+  return aKeys.every((k) =>
+    deepEqual((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k])
+  );
+}
+
+function enumConstMutator(schema: JsonSchema, _baseline: unknown): MutateResult {
+  const mutants: Mutant[] = [];
+  const skipped: Skipped[] = [];
+
+  const members = schema.enum !== undefined
+    ? (schema.enum as unknown[])
+    : schema.const !== undefined
+      ? [schema.const]
+      : undefined;
+  const keyword = schema.enum !== undefined ? "enum" : "const";
+
+  if (members === undefined) {
+    skipped.push({
+      keyword: "enum",
+      path: "",
+      reason: "schema has no enum or const keyword to negate",
+    });
+    return { mutants, skipped };
+  }
+
+  const candidate = ENUM_CANDIDATES.find(
+    (c) => !members.some((m) => deepEqual(m, c))
+  );
+
+  if (candidate === undefined) {
+    skipped.push({
+      keyword,
+      path: "",
+      reason: `every candidate in the negation pool is already a member of the ${keyword}`,
+    });
+    return { mutants, skipped };
+  }
+
+  mutants.push({
+    value: candidate,
+    keyword,
+    path: "",
+    reason: `candidate ${JSON.stringify(candidate)} is not a member of the ${keyword}`,
+  });
+
+  return { mutants, skipped };
+}
+
 /**
  * Generate the mutants (values that must be rejected) and skipped negations
  * (keywords this version cannot negate for this schema) for a schema and a
@@ -114,8 +305,23 @@ function requiredMutator(schema: JsonSchema, baseline: unknown): MutateResult {
  * Never throws: an unmutatable schema is a returned `skipped` entry, not an
  * error.
  */
+const MUTATORS: Array<{
+  keywords: string[];
+  run: (schema: JsonSchema, baseline: unknown) => MutateResult;
+}> = [
+  { keywords: ["type"], run: typeMutator },
+  { keywords: ["required"], run: requiredMutator },
+  { keywords: ["minLength"], run: minLengthMutator },
+  { keywords: ["maxLength"], run: maxLengthMutator },
+  { keywords: ["pattern"], run: patternMutator },
+  { keywords: ["enum", "const"], run: enumConstMutator },
+];
+
+/** Every keyword any registered mutator can emit. The fixture set must exercise all of them. */
+export const MUTATOR_KEYWORDS: string[] = MUTATORS.flatMap((m) => m.keywords);
+
 export function mutate(schema: JsonSchema, baseline: unknown): MutateResult {
-  const results = [typeMutator(schema, baseline), requiredMutator(schema, baseline)];
+  const results = MUTATORS.map((m) => m.run(schema, baseline));
 
   const mutants = results.flatMap((r) => r.mutants);
   const skipped = results.flatMap((r) => r.skipped);

@@ -43,5 +43,15 @@ export interface MutateResult {
 export interface JsonSchema {
   type?: JsonType | JsonType[];
   required?: string[];
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+  enum?: unknown[];
+  const?: unknown;
+  minimum?: number;
+  maximum?: number;
+  exclusiveMinimum?: number;
+  exclusiveMaximum?: number;
+  multipleOf?: number;
   [key: string]: unknown;
 }

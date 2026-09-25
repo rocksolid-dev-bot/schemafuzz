@@ -1,6 +1,6 @@
 import Ajv from "ajv";
 import { describe, expect, it } from "vitest";
-import { mutate } from "../src/mutate.js";
+import { mutate, MUTATOR_KEYWORDS } from "../src/mutate.js";
 import { fixtures } from "./schemas.js";
 
 const ajv = new Ajv();
@@ -34,5 +34,26 @@ for (const fixture of fixtures) {
         ).toBe(false);
       });
     }
+
+    if (fixture.expectSkippedKeywords) {
+      it(`reports the un-negatable keywords as skipped`, () => {
+        const keywords = skipped.map((s) => s.keyword);
+        for (const expected of fixture.expectSkippedKeywords!) {
+          expect(keywords).toContain(expected);
+        }
+      });
+    }
   });
 }
+
+const emittedKeywords = new Set(
+  fixtures.flatMap((f) => mutate(f.schema, f.baseline).mutants.map((m) => m.keyword))
+);
+
+describe("mutator coverage", () => {
+  for (const keyword of MUTATOR_KEYWORDS) {
+    it(`the fixture set exercises the ${keyword} mutator`, () => {
+      expect([...emittedKeywords]).toContain(keyword);
+    });
+  }
+});
