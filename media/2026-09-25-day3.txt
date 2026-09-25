@@ -1,0 +1,66 @@
+$ node -v
+v18.19.1
+exit=0
+
+$ npm ci
+
+added 52 packages, and audited 53 packages in 3s
+
+14 packages are looking for funding
+  run `npm fund` for details
+
+5 vulnerabilities (3 moderate, 1 high, 1 critical)
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+exit=0
+
+$ npx tsc --noEmit
+exit=0
+
+$ npx vitest run
+
+ RUN  v2.1.9 /work/code
+
+ ✓ test/oracle.test.ts (69 tests) 83ms
+
+ Test Files  1 passed (1)
+      Tests  69 passed (69)
+   Start at  15:18:11
+   Duration  759ms (transform 225ms, setup 0ms, collect 291ms, tests 83ms, environment 0ms, prepare 85ms)
+
+exit=0
+
+$ npm run build
+
+> schemafuzz@0.0.0 build
+> tsc
+
+exit=0
+
+$ grep -rn "throw " src/
+exit=1
+
+$ grep -rn "from ['ajv]" src/
+exit=1
+
+$ grep -rn "MUTATOR_KEYWORDS" src/ test/
+src/mutate.ts:464:export const MUTATOR_KEYWORDS: string[] = MUTATORS.flatMap((m) => m.keywords);
+test/oracle.test.ts:3:import { mutate, MUTATOR_KEYWORDS } from "../src/mutate.js";
+test/oracle.test.ts:54:  for (const keyword of MUTATOR_KEYWORDS) {
+exit=0
+
+$ git log --oneline -6
+d11e51a feat: land numeric mutators (minimum, maximum, exclusiveMinimum, exclusiveMaximum, multipleOf)
+8b5af1c feat: land string/enum mutators (minLength, maxLength, pattern, enum, const) with fixtures and coverage tests
+1aa20d4 docs: add CHANGELOG.md stub for a93a1d8
+a93a1d8 fix: enforce consumer rule via noUnusedLocals/noUnusedParameters, drop orphaned jsonTypeOf
+5f6bf8b docs: day 1 close-out capture
+3542c0f test: assert no-counterexample schemas report skipped, not a throw
+exit=0
+
+$ git status --short
+?? media/2026-09-25-day3.txt
+exit=0
