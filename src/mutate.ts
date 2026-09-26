@@ -425,11 +425,21 @@ function multipleOfMutator(schema: JsonSchema, baseline: unknown): MutateResult 
     return { mutants, skipped };
   }
 
+  const candidate = baseline + k / 2;
+  if (candidate === baseline) {
+    skipped.push({
+      keyword: "multipleOf",
+      path: "",
+      reason: `baseline ${baseline} + multipleOf ${k}/2 is not representable as a distinct number, so no counterexample can be built by this method`,
+    });
+    return { mutants, skipped };
+  }
+
   mutants.push({
-    value: baseline + k / 2,
+    value: candidate,
     keyword: "multipleOf",
     path: "",
-    reason: `${baseline} + ${k}/2 = ${baseline + k / 2} is not a multiple of ${k}`,
+    reason: `${baseline} + ${k}/2 = ${candidate} is not a multiple of ${k}`,
   });
 
   return { mutants, skipped };

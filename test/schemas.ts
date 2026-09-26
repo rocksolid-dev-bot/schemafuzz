@@ -187,4 +187,11 @@ export const fixtures: Fixture[] = [
     expectMutants: true,
     expectSkippedKeywords: ["minProperties"],
   },
+  {
+    name: "integer with a multipleOf too small to offset (float precision)",
+    schema: { type: "integer", multipleOf: 1e-8 },
+    baseline: 12391239123,
+    expectMutants: true,
+    expectSkippedKeywords: ["multipleOf"],
+  },
 ];

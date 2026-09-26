@@ -22,6 +22,13 @@ All notable changes to schemafuzz are documented here. The format follows
   rather than duplicating (avoids a false `uniqueItems` co-blame), and `minProperties` drops a
   non-required key (avoids a false `required` co-blame).
 
+### Fixed
+
+- `multipleOf` no longer emits a value ajv accepts. Where `baseline + multipleOf/2` is swallowed
+  by float precision — `12391239123 + 1e-8/2 === 12391239123` — the mutator now reports a
+  `skipped` entry instead of a counterexample that is not one. Found by running `mutate()` over
+  `json-schema-org/JSON-Schema-Test-Suite`, not by reading the code.
+
 ### Changed
 
 - `tsconfig.json` enables `noUnusedLocals` and `noUnusedParameters`, so the type-checker enforces
