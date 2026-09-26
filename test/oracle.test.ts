@@ -69,3 +69,34 @@ describe("mutator coverage", () => {
     });
   }
 });
+
+describe("recursion into nested schemas (one level)", () => {
+  const canonical = fixtures.find(
+    (f) => f.name === "object with nested minLength via properties recursion"
+  )!;
+  const arrayCase = fixtures.find(
+    (f) => f.name === "array with minLength-constrained items via items recursion"
+  )!;
+
+  it("splices a nested minLength mutant into properties at /name", () => {
+    const { mutants } = mutate(canonical.schema, canonical.baseline);
+    const nested = mutants.find((m) => m.keyword === "minLength" && m.path === "/name");
+    expect(nested).toBeDefined();
+  });
+
+  it("splices a nested minLength mutant into items at a numeric index", () => {
+    const { mutants } = mutate(arrayCase.schema, arrayCase.baseline);
+    const nested = mutants.find((m) => m.keyword === "minLength" && /^\/\d+$/.test(m.path));
+    expect(nested).toBeDefined();
+  });
+
+  it("no longer claims the root has no minLength to negate", () => {
+    const { skipped } = mutate(canonical.schema, canonical.baseline);
+    expect(skipped.filter((s) => s.keyword === "minLength" && s.path === "")).toEqual([]);
+  });
+
+  it("at least one skipped entry across the fixture set carries a non-empty path", () => {
+    const allSkipped = fixtures.flatMap((f) => mutate(f.schema, f.baseline).skipped);
+    expect(allSkipped.some((s) => s.path !== "")).toBe(true);
+  });
+});

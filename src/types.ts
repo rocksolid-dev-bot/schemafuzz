@@ -60,5 +60,8 @@ export interface JsonSchema {
   minProperties?: number;
   maxProperties?: number;
   propertyNames?: JsonSchema;
+  properties?: Record<string, JsonSchema>;
+  /** Object-form only (a single subschema applied to every element). Tuple-form (an array of subschemas) is out of scope for recursion. */
+  items?: JsonSchema | JsonSchema[];
   [key: string]: unknown;
 }

@@ -840,11 +840,81 @@ const MUTATORS: Array<{
 /** Every keyword any registered mutator can emit. The fixture set must exercise all of them. */
 export const MUTATOR_KEYWORDS: string[] = MUTATORS.flatMap((m) => m.keywords);
 
-export function mutate(schema: JsonSchema, baseline: unknown): MutateResult {
+/** Run only the registered keyword mutators on this exact schema/baseline pair — no recursion. */
+function mutateFlat(schema: JsonSchema, baseline: unknown): MutateResult {
   const results = MUTATORS.map((m) => m.run(schema, baseline));
+  return {
+    mutants: results.flatMap((r) => r.mutants),
+    skipped: results.flatMap((r) => r.skipped),
+  };
+}
 
-  const mutants = results.flatMap((r) => r.mutants);
-  const skipped = results.flatMap((r) => r.skipped);
+export function mutate(schema: JsonSchema, baseline: unknown): MutateResult {
+  const flat = mutateFlat(schema, baseline);
+  const mutants: Mutant[] = [...flat.mutants];
+  const nestedMutants: Mutant[] = [];
+  const nestedSkipped: Skipped[] = [];
+
+  // Recurse one level into `properties`: splice each nested sub-mutant back
+  // into a copy of the parent baseline at the corresponding key. A nested
+  // mutant's `keyword` is the nested schema's own keyword (e.g. `minLength`),
+  // never `properties` itself — `properties` is a recursion site, not a
+  // mutator. Skips carry the path they were computed at, so a root-level
+  // skip (`path: ""`) is never confused with one found while recursing into
+  // `/name`.
+  if (schema.properties && isPlainObject(baseline)) {
+    for (const [key, subschema] of Object.entries(schema.properties)) {
+      if (!(key in baseline)) continue;
+      const keyToken = `/${escapeToken(key)}`;
+      const sub = mutateFlat(subschema, baseline[key]);
+      for (const m of sub.mutants) {
+        nestedMutants.push({
+          value: { ...baseline, [key]: m.value },
+          keyword: m.keyword,
+          path: keyToken + m.path,
+          reason: m.reason,
+        });
+      }
+      for (const s of sub.skipped) {
+        nestedSkipped.push({ keyword: s.keyword, path: keyToken + s.path, reason: s.reason });
+      }
+    }
+  }
+
+  // Recurse one level into `items` (object form only — a single subschema
+  // applied to every element; tuple form, an array of subschemas, is out of
+  // scope). `items` is measured to be a recursion site, not a mutator: its
+  // spliced mutant is blamed on the nested schema's own keyword (e.g.
+  // `type`), never on `items`.
+  if (schema.items && !Array.isArray(schema.items) && Array.isArray(baseline)) {
+    const itemSchema = schema.items;
+    baseline.forEach((item, index) => {
+      const idxToken = `/${index}`;
+      const sub = mutateFlat(itemSchema, item);
+      for (const m of sub.mutants) {
+        const spliced = [...baseline];
+        spliced[index] = m.value;
+        nestedMutants.push({ value: spliced, keyword: m.keyword, path: idxToken + m.path, reason: m.reason });
+      }
+      for (const s of sub.skipped) {
+        nestedSkipped.push({ keyword: s.keyword, path: idxToken + s.path, reason: s.reason });
+      }
+    });
+  }
+
+  // A root-level skip claiming "schema has no <keyword> keyword to negate"
+  // is true of the root and false of the schema once recursion finds that
+  // same keyword one level down (as either a nested mutant or a nested skip)
+  // — measured on the canonical nested-minLength case, where the root skip
+  // read like a complete "nothing to negate" about a schema that plainly had
+  // a minLength to negate at /name. Drop it rather than let it lie.
+  const nestedKeywords = new Set([...nestedMutants, ...nestedSkipped].map((e) => e.keyword));
+  const rootSkipped = flat.skipped.filter(
+    (s) => !(s.path === "" && nestedKeywords.has(s.keyword))
+  );
+
+  mutants.push(...nestedMutants);
+  const skipped = [...rootSkipped, ...nestedSkipped];
 
   return { mutants, skipped };
 }

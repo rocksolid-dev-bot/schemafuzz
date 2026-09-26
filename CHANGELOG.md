@@ -26,6 +26,13 @@ All notable changes to schemafuzz are documented here. The format follows
   pinned at commit `5b0ee1613e45fcc2bddac00e07c19cd49b00d8a8`, draft2020-12. Asserts 0 mutants
   accepted by ajv and 0 blame mismatches across every usable group, with a per-file usable >= 1
   floor so an empty harness cannot pass. Pins no total mutant/group count.
+- Recursion, one level, into `properties` (each value) and `items` (object form): a nested
+  sub-mutant is spliced back into a copy of the parent baseline at the corresponding key
+  (`/name`) or index (`/0`), keeping the nested schema's own keyword as the mutant's `keyword`.
+  `items` is a recursion site, not a mutator. Skips now carry the path they were computed at
+  (measured non-empty paths: `/0`, `/1`, `/2`, `/a`, `/name`), so a root-level "no `minLength`
+  keyword to negate" skip is dropped once recursion finds `minLength` genuinely present one
+  level down — that skip was true of the root and false of the schema.
 
 ### Fixed
 

@@ -194,4 +194,23 @@ export const fixtures: Fixture[] = [
     expectMutants: true,
     expectSkippedKeywords: ["multipleOf"],
   },
+  {
+    name: "object with nested minLength via properties recursion",
+    schema: {
+      type: "object",
+      required: ["name"],
+      properties: { name: { type: "string", minLength: 2 } },
+    },
+    baseline: { name: "Ada" },
+    expectMutants: true,
+  },
+  {
+    name: "array with minLength-constrained items via items recursion",
+    schema: {
+      type: "array",
+      items: { type: "string", minLength: 3 },
+    },
+    baseline: ["abc", "def"],
+    expectMutants: true,
+  },
 ];
