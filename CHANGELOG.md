@@ -36,6 +36,13 @@ All notable changes to schemafuzz are documented here. The format follows
 
 ### Fixed
 
+- Root-skip filter no longer deletes true claims. It built its "keyword found one level
+  down" set from both nested mutants and nested skips; a nested skip is itself a
+  "not present" claim, and recursion emits one per unregistered keyword, so the set was
+  every keyword and every root skip was dropped, including the true ones. The set is now
+  built from nested mutants alone — the direction that survives is a root skip whose
+  keyword appears nowhere in the schema, which now correctly survives recursion instead
+  of being deleted alongside the false ones.
 - `multipleOf` no longer emits a value ajv accepts. Where `baseline + multipleOf/2` is swallowed
   by float precision — `12391239123 + 1e-8/2 === 12391239123` — the mutator now reports a
   `skipped` entry instead of a counterexample that is not one. Found by running `mutate()` over

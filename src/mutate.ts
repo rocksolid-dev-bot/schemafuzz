@@ -904,11 +904,15 @@ export function mutate(schema: JsonSchema, baseline: unknown): MutateResult {
 
   // A root-level skip claiming "schema has no <keyword> keyword to negate"
   // is true of the root and false of the schema once recursion finds that
-  // same keyword one level down (as either a nested mutant or a nested skip)
-  // — measured on the canonical nested-minLength case, where the root skip
-  // read like a complete "nothing to negate" about a schema that plainly had
-  // a minLength to negate at /name. Drop it rather than let it lie.
-  const nestedKeywords = new Set([...nestedMutants, ...nestedSkipped].map((e) => e.keyword));
+  // same keyword one level down (as a nested mutant) — measured on the
+  // canonical nested-minLength case, where the root skip read like a
+  // complete "nothing to negate" about a schema that plainly had a
+  // minLength to negate at /name. Drop it rather than let it lie. Only a
+  // nested *mutant* is evidence the keyword is genuinely negotiable one
+  // level down; a nested skip is itself a "not present" claim, and recursion
+  // emits one per unregistered keyword — folding those in would make the set
+  // every keyword and delete every root skip, including the true ones.
+  const nestedKeywords = new Set(nestedMutants.map((e) => e.keyword));
   const rootSkipped = flat.skipped.filter(
     (s) => !(s.path === "" && nestedKeywords.has(s.keyword))
   );
