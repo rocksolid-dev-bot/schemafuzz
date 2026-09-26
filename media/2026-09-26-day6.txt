@@ -1,0 +1,70 @@
++ node -v
+v18.19.1
++ echo exit=0
+exit=0
++ tail -5
++ npm ci
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
++ echo exit=0
+exit=0
++ npx tsc --noEmit
++ echo exit=0
+exit=0
++ npx vitest run
+
+ RUN  v2.1.9 /work/code
+
+ ✓ test/vendor.test.ts (113 tests) 55ms
+ ✓ test/oracle.test.ts (174 tests) 111ms
+
+ Test Files  2 passed (2)
+      Tests  287 passed (287)
+   Start at  08:22:14
+   Duration  1.50s (transform 266ms, setup 0ms, collect 568ms, tests 167ms, environment 1ms, prepare 179ms)
+
++ echo exit=0
+exit=0
++ npm run build
+
+> schemafuzz@0.0.0 build
+> tsc
+
++ echo exit=0
+exit=0
++ sh scripts/invariants.sh
+--- no throws in src/ (errors are values) ---
+ok: no throws
+--- ajv is never imported by the shipped library ---
+ok: no ajv import
+note: mutator-keyword coverage is asserted by the coverage tests in test/oracle.test.ts, not here
++ echo exit=0
+exit=0
++ wc -l
++ ls test/vendor
+20
++ echo exit=0
+exit=0
++ git log --oneline -6
+3aa2708 feat(mutate): recurse one level into properties and items
+c63f567 test: vendor official JSON-Schema-Test-Suite as ground-truth harness
+9741a94 fix(mutate): guard multipleOf against float-precision non-mutant
+e4baeb0 refactor: drop decorative header from invariants.sh third section
+b7f4174 docs: day 4 close-out capture
+aaae21a feat: land seven structural mutators (minItems, maxItems, uniqueItems, additionalProperties, minProperties, maxProperties, propertyNames)
++ echo exit=0
+exit=0
++ git status --short
+?? media/2026-09-26-day6.txt
++ echo exit=0
+exit=0
+
+--- suite total reconciliation, components measured, none hard-coded ---
+test/oracle.test.ts = 174 = baselines(27) + expectation(28) + mutant(64) + blame(26)
+  + skippedKeywords(6) + coverage(19) + recursion-specific(4)
+test/vendor.test.ts = 113 = file-count(1) + usable-group-assertions(93) + per-file-floor(19)
+total = 174 + 113 = 287, matches `npx vitest run` above.
+
