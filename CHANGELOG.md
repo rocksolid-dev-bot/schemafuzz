@@ -21,6 +21,11 @@ All notable changes to schemafuzz are documented here. The format follows
   avoid the confounds ajv's blame list can expose: `maxItems` extends with new unique values
   rather than duplicating (avoids a false `uniqueItems` co-blame), and `minProperties` drops a
   non-required key (avoids a false `required` co-blame).
+- Vendored ground-truth harness (`test/vendor/`, `test/vendor.test.ts`): 19 keyword files plus
+  `LICENSE` from `json-schema-org/JSON-Schema-Test-Suite` (MIT, Copyright (c) 2012 Julian Berman),
+  pinned at commit `5b0ee1613e45fcc2bddac00e07c19cd49b00d8a8`, draft2020-12. Asserts 0 mutants
+  accepted by ajv and 0 blame mismatches across every usable group, with a per-file usable >= 1
+  floor so an empty harness cannot pass. Pins no total mutant/group count.
 
 ### Fixed
 

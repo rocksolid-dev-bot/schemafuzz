@@ -2,9 +2,9 @@ import type { JsonSchema } from "../src/types.js";
 
 /**
  * Hand-written schema + baseline pairs for the oracle harness. Self-authored
- * on day 1; day 3 vendors the official JSON-Schema-Test-Suite so the happy
- * path is checked against schemas the spec's own authors wrote, not schemas
- * this project invented.
+ * on day 1; day 6 vendors the official JSON-Schema-Test-Suite (test/vendor/,
+ * test/vendor.test.ts) so the happy path is also checked against schemas the
+ * spec's own authors wrote, not only schemas this project invented.
  */
 export interface Fixture {
   name: string;
