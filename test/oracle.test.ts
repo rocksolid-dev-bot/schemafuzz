@@ -99,4 +99,40 @@ describe("recursion into nested schemas (one level)", () => {
     const allSkipped = fixtures.flatMap((f) => mutate(f.schema, f.baseline).skipped);
     expect(allSkipped.some((s) => s.path !== "")).toBe(true);
   });
+
+  const rootSkips = (schema: any, baseline: any) =>
+    mutate(schema, baseline).skipped.filter((s) => s.path === "").length;
+  const hasRootMinLength = (schema: any, baseline: any) =>
+    mutate(schema, baseline).skipped.some((s) => s.keyword === "minLength" && s.path === "");
+
+  it("canonical fixture: 15 root skips, minLength absent from the root skip list", () => {
+    expect(rootSkips(canonical.schema, canonical.baseline)).toBe(15);
+    expect(hasRootMinLength(canonical.schema, canonical.baseline)).toBe(false);
+  });
+
+  it("control (canonical minus minLength): 16 root skips, minLength present", () => {
+    const schema = {
+      type: "object",
+      required: ["name"],
+      properties: { name: { type: "string" } },
+    };
+    const baseline = { name: "Ada" };
+    expect(rootSkips(schema, baseline)).toBe(16);
+    expect(hasRootMinLength(schema, baseline)).toBe(true);
+  });
+
+  it("items fixture: 16 root skips, minLength absent from the root skip list", () => {
+    expect(rootSkips(arrayCase.schema, arrayCase.baseline)).toBe(16);
+    expect(hasRootMinLength(arrayCase.schema, arrayCase.baseline)).toBe(false);
+  });
+
+  it("control (items minus minLength): 17 root skips, minLength present", () => {
+    const schema = {
+      type: "array",
+      items: { type: "string" },
+    };
+    const baseline = ["abc", "def"];
+    expect(rootSkips(schema, baseline)).toBe(17);
+    expect(hasRootMinLength(schema, baseline)).toBe(true);
+  });
 });
