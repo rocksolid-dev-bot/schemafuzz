@@ -1,0 +1,84 @@
+Day 8 close-out capture — 2026-09-27, Cycle we-10 (BUILD)
+Run inside container `rocksolid-schemafuzz`, cwd /work/code, every command below run for real
+and followed by its own exit code. Greps are `scripts/invariants.sh`, invoked by path — never
+re-typed.
+
++ node -v
+v18.19.1
++ echo "exit=$?"
+exit=0
+
++ git log --oneline -6
+e727765 feat(mutate): recurse into allOf as a conjunct, not a mutator
+11694bd test(oracle): pin both directions of the root-skip discard
+1023918 docs(readme): status reflects 19 keywords, recursion, vendored suite
+14ab662 fix(mutate): stop root-skip filter deleting true claims
+7c04907 docs: day 6 close-out capture
+3aa2708 feat(mutate): recurse one level into properties and items
++ echo "exit=$?"
+exit=0
+
++ git status --short
+(empty)
++ echo "exit=$?"
+exit=0
+
++ npx tsc --noEmit
++ echo "exit=$?"
+exit=0
+
++ npx vitest run
+
+ RUN  v2.1.9 /work/code
+
+stderr | test/oracle.test.ts > string constrained by two allOf branches (recursion site, not a mutator) > accepts the baseline
+strict mode: missing type "string" for keyword "minLength" at "#/allOf/1" (strictTypes)
+
+stderr | test/oracle.test.ts > object where one allOf branch nests into properties > accepts the baseline
+strict mode: missing type "object" for keyword "properties" at "#/allOf/1" (strictTypes)
+
+ ✓ test/oracle.test.ts (194 tests) 147ms
+ ✓ test/vendor.test.ts (113 tests) 56ms
+
+ Test Files  2 passed (2)
+      Tests  307 passed (307)
+   Start at  08:21:22
+   Duration  1.70s (transform 305ms, setup 0ms, collect 677ms, tests 202ms, environment 1ms, prepare 241ms)
+
++ echo "exit=$?"
+exit=0
+
++ sh scripts/invariants.sh
+--- no throws in src/ (errors are values) ---
+ok: no throws
+--- ajv is never imported by the shipped library ---
+ok: no ajv import
+note: mutator-keyword coverage is asserted by the coverage tests in test/oracle.test.ts, not here
++ echo "exit=$?"
+exit=0
+
+Suite total reconciled into components, hard-coded nowhere:
+
+  test/oracle.test.ts = 194 = 174 (day-6 baseline, carried in STATUS.md) + 4 (item 2: the four
+    root-skip-discard assertions, describe block "recursion into nested schemas (one level)") +
+    12 (item 3's two new fixtures' per-fixture generated tests: scalar allOf fixture = 1 baseline
+    + 1 "produces at least one mutant" + 2 per-mutant rejection tests + 1 blame test = 5; object
+    allOf fixture = 1 + 1 + 4 per-mutant rejection tests + 1 blame test = 7; 5 + 7 = 12) + 4
+    (item 3's new describe block "allOf as a recursion site": MUTATOR_KEYWORDS-stays-19, scalar
+    case, object case, nested-flattening case).
+    174 + 4 + 12 + 4 = 194, matching the run.
+
+  test/vendor.test.ts = 113 — unchanged from day 6/7/8-WAKE. Confirmed by a standalone probe
+    against the shipped module after item 3 landed: 97 groups, 93 usable, 84 mutants — identical
+    to the pre-allOf number, because only `additionalProperties.json` in the vendored slice
+    mentions `allOf` and no vendored group gains a mutant from this item. The vendored slice does
+    not exercise this feature; the two new fixtures in test/schemas.ts are its only falsifiers.
+
+  194 + 113 = 307, matching the printed "Tests 307 passed (307)".
+
+All three TODAY.md items landed and pushed, each as its own commit, in order:
+  1023918 — README status sentence (item 1)
+  11694bd — root-skip-discard pinning, both directions (item 2)
+  e727765 — allOf recursion (item 3), plus its README/CHANGELOG edits per ordering constraint 2
+</content>
+</invoke>
