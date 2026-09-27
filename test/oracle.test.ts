@@ -180,3 +180,44 @@ describe("allOf as a recursion site", () => {
     expect(mutants.every((m) => m.path === "")).toBe(true);
   });
 });
+
+describe("allOf branch skips (reason, not presence)", () => {
+  it("A: branch has an honest reason for a keyword the root reports generically -> root converges on the branch's reason", () => {
+    const schema = { allOf: [{ type: "object" }, { minProperties: 1 }] };
+    const { skipped } = mutate(schema, { a: 1, b: 2 });
+    const rootSkips = skipped.filter((s) => s.path === "");
+    expect(rootSkips).toHaveLength(17);
+    const mp = rootSkips.find((s) => s.keyword === "minProperties");
+    expect(mp?.reason).toBe(
+      'dropping non-required key "a" still leaves 1 properties, at or above minProperties 1'
+    );
+  });
+
+  it("B: root-level control reports the same honest reason directly, unchanged", () => {
+    const schema = { type: "object", minProperties: 1 };
+    const { skipped } = mutate(schema, { a: 1, b: 2 });
+    const rootSkips = skipped.filter((s) => s.path === "");
+    expect(rootSkips).toHaveLength(17);
+    const mp = rootSkips.find((s) => s.keyword === "minProperties");
+    expect(mp?.reason).toBe(
+      'dropping non-required key "a" still leaves 1 properties, at or above minProperties 1'
+    );
+  });
+
+  it("C: branch truly has no minProperties -> the generic absence reason survives, unchanged", () => {
+    const schema = { allOf: [{ type: "object" }, { maxProperties: 5 }] };
+    const { skipped } = mutate(schema, { a: 1, b: 2 });
+    const rootSkips = skipped.filter((s) => s.path === "");
+    expect(rootSkips).toHaveLength(16);
+    const mp = rootSkips.find((s) => s.keyword === "minProperties");
+    expect(mp?.reason).toBe("schema has no minProperties keyword to negate");
+  });
+
+  it("D: branch negates the keyword -> no root skip for it at all (existing filter, unmoved)", () => {
+    const schema = { allOf: [{ type: "object" }, { minProperties: 2 }] };
+    const { skipped } = mutate(schema, { a: 1, b: 2 });
+    const rootSkips = skipped.filter((s) => s.path === "");
+    expect(rootSkips).toHaveLength(16);
+    expect(rootSkips.find((s) => s.keyword === "minProperties")).toBeUndefined();
+  });
+});

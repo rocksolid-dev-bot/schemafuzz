@@ -15,6 +15,16 @@ function escapeToken(token: string): string {
   return token.replace(/~/g, "~0").replace(/\//g, "~1");
 }
 
+/**
+ * True for the generic "nothing to negate" skip shape every mutator emits
+ * when a keyword is genuinely absent — a predicate, not an equality, because
+ * the keyword itself varies (e.g. `propertyNames` skips read "schema has no
+ * propertyNames.pattern keyword to negate", not "... propertyNames keyword ...").
+ */
+function isGenericAbsenceReason(reason: string): boolean {
+  return reason.startsWith("schema has no ") && reason.endsWith(" keyword to negate");
+}
+
 function typeMutator(schema: JsonSchema, _baseline: unknown): MutateResult {
   const mutants: Mutant[] = [];
   const skipped: Skipped[] = [];
@@ -910,16 +920,28 @@ export function mutate(schema: JsonSchema, baseline: unknown): MutateResult {
   // the parent applied to the whole instance, not spliced into a key: it
   // keeps the value and path `mutate` already computed for it (a root-level
   // one keeps `path: ""`), unlike the `properties`/`items` splicing above.
-  // Design decision, not an oversight: branch *skips* are not folded into
-  // `nestedSkipped`. A branch skip carries `path: ""`, indistinguishable
-  // from a root skip, and feeding those back would rebuild the exact
-  // lying-skip confusion the root-skip fix above removed. Branch mutants are
-  // evidence; branch skips are noise here.
+  // Design decision, not an oversight: branch skips are still never *added*
+  // to the skip list — a branch skip carries `path: ""`, indistinguishable
+  // from a root skip, and adding it would rebuild the exact lying-skip
+  // confusion the root-skip fix above removed. But a branch skip is
+  // consulted for its *reason*: if a branch reports a non-generic reason for
+  // a keyword (e.g. "dropping non-required key ... still leaves N properties,
+  // at or above minProperties N"), that reason is a true, more specific claim
+  // than a surviving root skip's generic "schema has no <keyword> keyword to
+  // negate" about the same keyword — the branch has the keyword, the root's
+  // generic wording is simply wrong. Only a generic root skip is replaced,
+  // and only with a branch's non-generic reason for the same keyword.
+  const branchSpecificReasons = new Map<string, string>();
   if (schema.allOf) {
     for (const branch of schema.allOf) {
       const sub = mutate(branch, baseline);
       for (const m of sub.mutants) {
         nestedMutants.push({ value: m.value, keyword: m.keyword, path: m.path, reason: m.reason });
+      }
+      for (const s of sub.skipped) {
+        if (s.path === "" && !isGenericAbsenceReason(s.reason) && !branchSpecificReasons.has(s.keyword)) {
+          branchSpecificReasons.set(s.keyword, s.reason);
+        }
       }
     }
   }
@@ -935,9 +957,14 @@ export function mutate(schema: JsonSchema, baseline: unknown): MutateResult {
   // emits one per unregistered keyword — folding those in would make the set
   // every keyword and delete every root skip, including the true ones.
   const nestedKeywords = new Set(nestedMutants.map((e) => e.keyword));
-  const rootSkipped = flat.skipped.filter(
-    (s) => !(s.path === "" && nestedKeywords.has(s.keyword))
-  );
+  const rootSkipped = flat.skipped
+    .filter((s) => !(s.path === "" && nestedKeywords.has(s.keyword)))
+    .map((s) => {
+      if (s.path === "" && isGenericAbsenceReason(s.reason) && branchSpecificReasons.has(s.keyword)) {
+        return { ...s, reason: branchSpecificReasons.get(s.keyword)! };
+      }
+      return s;
+    });
 
   mutants.push(...nestedMutants);
   const skipped = [...rootSkipped, ...nestedSkipped];
