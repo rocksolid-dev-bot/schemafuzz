@@ -25,7 +25,7 @@ function isGenericAbsenceReason(reason: string): boolean {
   return reason.startsWith("schema has no ") && reason.endsWith(" keyword to negate");
 }
 
-function typeMutator(schema: JsonSchema, _baseline: unknown): MutateResult {
+function typeMutator(schema: JsonSchema, baseline: unknown): MutateResult {
   const mutants: Mutant[] = [];
   const skipped: Skipped[] = [];
 
@@ -62,6 +62,27 @@ function typeMutator(schema: JsonSchema, _baseline: unknown): MutateResult {
     path: "",
     reason: `replaced instance with a ${chosen} value, outside allowed type(s) [${[...allowed].join(", ")}]`,
   });
+
+  // `integer` is a refinement of `number`, not a disjoint JSON type: the
+  // substitution mutant above (the first allowed-JSON-type not in `allowed`)
+  // never reaches this case, because `number` and `integer` share the same
+  // JSON type. When `integer` is allowed and `number` is not, the real
+  // counterexample is a non-integer number adjacent to the baseline —
+  // guarding on a finite integer baseline keeps it minimal.
+  if (
+    allowed.has("integer") &&
+    !allowed.has("number") &&
+    typeof baseline === "number" &&
+    Number.isFinite(baseline) &&
+    Number.isInteger(baseline)
+  ) {
+    mutants.push({
+      value: baseline + 0.5,
+      keyword: "type",
+      path: "",
+      reason: `offset the integer baseline by 0.5 to a non-integer number, outside allowed type(s) [${[...allowed].join(", ")}]`,
+    });
+  }
 
   return { mutants, skipped };
 }

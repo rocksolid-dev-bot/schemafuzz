@@ -41,6 +41,13 @@ All notable changes to schemafuzz are documented here. The format follows
   are deliberately not folded into the reported `skipped` list: a branch skip carries
   `path: ""`, indistinguishable from a root skip, and folding it in would rebuild the
   lying-skip confusion the root-skip fix above removed.
+- `type` mutator: when the allowed set contains `integer` and not `number` and the baseline is a
+  finite integer, a second `type` mutant is emitted alongside the existing type-substitution
+  mutant: `baseline + 0.5`. `integer` is a refinement of `number`, not a disjoint JSON type, so
+  the substitution mutant (the first allowed JSON type not in `allowed`) never produces a
+  non-integer counterexample on its own; a validator that treats `integer` as `number` passed
+  every mutant this mutator emitted before this change. No new mutator is registered
+  (`MUTATOR_KEYWORDS` stays 19) — the offset lives inside the existing `type` mutator.
 
 ### Fixed
 

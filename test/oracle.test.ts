@@ -221,3 +221,38 @@ describe("allOf branch skips (reason, not presence)", () => {
     expect(rootSkips.find((s) => s.keyword === "minProperties")).toBeUndefined();
   });
 });
+
+describe("integer is a refinement of number, not a disjoint type", () => {
+  it("{type:'integer'} / 42 -> 2 mutants: the string substitution and a non-integer offset", () => {
+    const { mutants } = mutate({ type: "integer" } as any, 42);
+    expect(mutants).toHaveLength(2);
+    expect(mutants.find((m) => m.keyword === "type" && m.value === "mutant-string")).toBeDefined();
+    expect(mutants.find((m) => m.keyword === "type" && m.value === 42.5)).toBeDefined();
+  });
+
+  it("control: {type:'number'} / 42 stays at 1 mutant — number allows non-integers, nothing to refine", () => {
+    const { mutants } = mutate({ type: "number" } as any, 42);
+    expect(mutants).toHaveLength(1);
+    expect(mutants[0].value).toBe("mutant-string");
+  });
+
+  it("control: {type:['integer','number']} / 42 stays at 1 mutant — number is allowed, so 42.5 is not a counterexample", () => {
+    const { mutants } = mutate({ type: ["integer", "number"] } as any, 42);
+    expect(mutants).toHaveLength(1);
+    expect(mutants[0].value).toBe("mutant-string");
+  });
+
+  it("{type:'integer'} / \"x\" stays at 1 mutant — baseline is not an integer, nothing to offset", () => {
+    const { mutants } = mutate({ type: "integer" } as any, "x");
+    expect(mutants).toHaveLength(1);
+    expect(mutants[0].value).toBe("mutant-string");
+  });
+
+  it("nested: {n: integer} / {n: 42} gains the offset mutant at /n, blamed type", () => {
+    const schema = { type: "object", properties: { n: { type: "integer" } } };
+    const { mutants } = mutate(schema as any, { n: 42 });
+    expect(mutants).toHaveLength(3);
+    const offset = mutants.find((m) => m.path === "/n" && m.keyword === "type" && JSON.stringify(m.value) === JSON.stringify({ n: 42.5 }));
+    expect(offset).toBeDefined();
+  });
+});
