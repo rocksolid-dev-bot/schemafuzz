@@ -136,3 +136,47 @@ describe("recursion into nested schemas (one level)", () => {
     expect(hasRootMinLength(schema, baseline)).toBe(true);
   });
 });
+
+describe("allOf as a recursion site", () => {
+  const scalarCase = fixtures.find(
+    (f) => f.name === "string constrained by two allOf branches (recursion site, not a mutator)"
+  )!;
+  const objectCase = fixtures.find(
+    (f) => f.name === "object where one allOf branch nests into properties"
+  )!;
+
+  it("MUTATOR_KEYWORDS stays 19 — allOf registers no mutator of its own", () => {
+    expect(MUTATOR_KEYWORDS.length).toBe(19);
+    expect(MUTATOR_KEYWORDS).not.toContain("allOf");
+  });
+
+  it("scalar case: 2 branch mutants, both at path '', skipped 18 -> 16", () => {
+    const { mutants, skipped } = mutate(scalarCase.schema, scalarCase.baseline);
+    expect(mutants).toHaveLength(2);
+    expect(mutants.find((m) => m.keyword === "type" && m.path === "" && m.value === 3.14)).toBeDefined();
+    expect(mutants.find((m) => m.keyword === "minLength" && m.path === "" && m.value === "aa")).toBeDefined();
+    expect(skipped).toHaveLength(16);
+    expect(skipped.some((s) => s.keyword === "minLength" && s.path === "")).toBe(false);
+    expect(skipped.some((s) => s.keyword === "type" && s.path === "")).toBe(false);
+  });
+
+  it("object case: 4 branch mutants (root + nested), skipped 18 -> 15", () => {
+    const { mutants, skipped } = mutate(objectCase.schema, objectCase.baseline);
+    expect(mutants).toHaveLength(4);
+    expect(mutants.find((m) => m.keyword === "type" && m.path === "")).toBeDefined();
+    expect(mutants.find((m) => m.keyword === "required" && m.path === "/a")).toBeDefined();
+    expect(mutants.find((m) => m.keyword === "type" && m.path === "/a")).toBeDefined();
+    expect(mutants.find((m) => m.keyword === "minLength" && m.path === "/a")).toBeDefined();
+    expect(skipped).toHaveLength(15);
+  });
+
+  it("nested allOf terminates and flattens to 3 mutants, all at path ''", () => {
+    const schema = {
+      allOf: [{ allOf: [{ type: "string" }, { minLength: 3 }] }, { maxLength: 8 }],
+    };
+    const { mutants } = mutate(schema, "abcd");
+    expect(mutants).toHaveLength(3);
+    expect(mutants.map((m) => m.keyword).sort()).toEqual(["maxLength", "minLength", "type"]);
+    expect(mutants.every((m) => m.path === "")).toBe(true);
+  });
+});

@@ -33,6 +33,14 @@ All notable changes to schemafuzz are documented here. The format follows
   (measured non-empty paths: `/0`, `/1`, `/2`, `/a`, `/name`), so a root-level "no `minLength`
   keyword to negate" skip is dropped once recursion finds `minLength` genuinely present one
   level down — that skip was true of the root and false of the schema.
+- Recursion into `allOf`: each branch is a conjunct on the same instance, not a level of
+  nesting, so each branch is recursed with `mutate` (not `mutateFlat`) and its mutants are
+  kept at the value and path `mutate` already computed for that branch — a root-level branch
+  mutant keeps `path: ""`, a branch that nests into `properties`/`items` keeps that nested
+  path. `allOf` registers no mutator of its own (`MUTATOR_KEYWORDS` stays 19). Branch skips
+  are deliberately not folded into the reported `skipped` list: a branch skip carries
+  `path: ""`, indistinguishable from a root skip, and folding it in would rebuild the
+  lying-skip confusion the root-skip fix above removed.
 
 ### Fixed
 

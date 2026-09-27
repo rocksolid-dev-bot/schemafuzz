@@ -63,5 +63,7 @@ export interface JsonSchema {
   properties?: Record<string, JsonSchema>;
   /** Object-form only (a single subschema applied to every element). Tuple-form (an array of subschemas) is out of scope for recursion. */
   items?: JsonSchema | JsonSchema[];
+  /** A recursion site, not a mutator: each branch constrains the whole instance and gets its own one-level treatment. */
+  allOf?: JsonSchema[];
   [key: string]: unknown;
 }

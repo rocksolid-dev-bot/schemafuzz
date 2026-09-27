@@ -213,4 +213,21 @@ export const fixtures: Fixture[] = [
     baseline: ["abc", "def"],
     expectMutants: true,
   },
+  {
+    name: "string constrained by two allOf branches (recursion site, not a mutator)",
+    schema: { allOf: [{ type: "string" }, { minLength: 3 }] },
+    baseline: "abcd",
+    expectMutants: true,
+  },
+  {
+    name: "object where one allOf branch nests into properties",
+    schema: {
+      allOf: [
+        { type: "object", required: ["a"] },
+        { properties: { a: { type: "string", minLength: 2 } } },
+      ],
+    },
+    baseline: { a: "xy" },
+    expectMutants: true,
+  },
 ];

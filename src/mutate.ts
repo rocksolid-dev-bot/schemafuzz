@@ -902,6 +902,28 @@ export function mutate(schema: JsonSchema, baseline: unknown): MutateResult {
     });
   }
 
+  // Recurse into `allOf`: a branch constrains the same instance at the same
+  // path, so it is a conjunct, not a level of nesting — each branch gets the
+  // same one-level-inside-it treatment the root gets, via `mutate` (not
+  // `mutateFlat`), so a branch that is itself an object with `properties`
+  // still finds its own nested mutants. A branch sub-mutant is a mutant of
+  // the parent applied to the whole instance, not spliced into a key: it
+  // keeps the value and path `mutate` already computed for it (a root-level
+  // one keeps `path: ""`), unlike the `properties`/`items` splicing above.
+  // Design decision, not an oversight: branch *skips* are not folded into
+  // `nestedSkipped`. A branch skip carries `path: ""`, indistinguishable
+  // from a root skip, and feeding those back would rebuild the exact
+  // lying-skip confusion the root-skip fix above removed. Branch mutants are
+  // evidence; branch skips are noise here.
+  if (schema.allOf) {
+    for (const branch of schema.allOf) {
+      const sub = mutate(branch, baseline);
+      for (const m of sub.mutants) {
+        nestedMutants.push({ value: m.value, keyword: m.keyword, path: m.path, reason: m.reason });
+      }
+    }
+  }
+
   // A root-level skip claiming "schema has no <keyword> keyword to negate"
   // is true of the root and false of the schema once recursion finds that
   // same keyword one level down (as a nested mutant) — measured on the
