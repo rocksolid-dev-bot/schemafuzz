@@ -1,0 +1,158 @@
+$ node -v
+v18.19.1
+exit=0
+$ npm ci
+exit=0
+$ npx tsc --noEmit
+exit=0
+$ npm run build
+
+> schemafuzz@0.1.0 build
+> tsc
+
+exit=0
+$ ls dist/
+mutate.d.ts
+mutate.js
+types.d.ts
+types.js
+exit=0
+$ npx vitest run
+
+stderr | test/oracle.test.ts > string constrained by two allOf branches (recursion site, not a mutator) > accepts the baseline
+strict mode: missing type "string" for keyword "minLength" at "#/allOf/1" (strictTypes)
+
+stderr | test/oracle.test.ts > object where one allOf branch nests into properties > accepts the baseline
+strict mode: missing type "object" for keyword "properties" at "#/allOf/1" (strictTypes)
+
+ ✓ test/oracle.test.ts (205 tests) 155ms
+ ✓ test/vendor.test.ts (113 tests) 80ms
+
+ Test Files  2 passed (2)
+      Tests  318 passed (318)
+   Start at  15:20:07
+   Duration  1.79s (transform 379ms, setup 0ms, collect 729ms, tests 236ms, environment 1ms, prepare 190ms)
+
+exit=0
+$ sh scripts/invariants.sh
+--- no throws in src/ (errors are values) ---
+ok: no throws
+--- ajv is never imported by the shipped library ---
+ok: no ajv import
+note: mutator-keyword coverage is asserted by the coverage tests in test/oracle.test.ts, not here
+exit=0
+$ sh scripts/prepush.sh
+--- 1: node -v ---
+v18.19.1
+exit=0
+--- 2: npm ci ---
+
+added 52 packages, and audited 53 packages in 2s
+
+14 packages are looking for funding
+  run `npm fund` for details
+
+5 vulnerabilities (3 moderate, 1 high, 1 critical)
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+exit=0
+--- 3: npx tsc --noEmit ---
+exit=0
+--- 4: npm run build ---
+
+> schemafuzz@0.1.0 build
+> tsc
+
+exit=0
+--- 5: npm test ---
+
+> schemafuzz@0.1.0 test
+> vitest run
+
+
+ RUN  v2.1.9 /work/code
+
+stderr | test/oracle.test.ts > string constrained by two allOf branches (recursion site, not a mutator) > accepts the baseline
+strict mode: missing type "string" for keyword "minLength" at "#/allOf/1" (strictTypes)
+
+stderr | test/oracle.test.ts > object where one allOf branch nests into properties > accepts the baseline
+strict mode: missing type "object" for keyword "properties" at "#/allOf/1" (strictTypes)
+
+ ✓ test/oracle.test.ts (205 tests) 143ms
+ ✓ test/vendor.test.ts (113 tests) 56ms
+
+ Test Files  2 passed (2)
+      Tests  318 passed (318)
+   Start at  15:20:26
+   Duration  1.67s (transform 340ms, setup 0ms, collect 657ms, tests 199ms, environment 1ms, prepare 171ms)
+
+exit=0
+--- 6: sh scripts/invariants.sh ---
+--- no throws in src/ (errors are values) ---
+ok: no throws
+--- ajv is never imported by the shipped library ---
+ok: no ajv import
+note: mutator-keyword coverage is asserted by the coverage tests in test/oracle.test.ts, not here
+exit=0
+--- 7: npm pack ---
+tarball=schemafuzz-0.1.0.tgz
+exit=0
+--- 8: install tarball into a throwaway consumer outside the repo ---
+
+added 1 package, and audited 2 packages in 491ms
+
+found 0 vulnerabilities
+exit=0
+--- 9: import the installed package and probe it ---
+19
+2
+exit=0
+--- 10: overall status ---
+exit=0
+$ npm pack --dry-run
+npm notice === Tarball Contents === 
+npm notice 5.5kB  CHANGELOG.md    
+npm notice 1.1kB  LICENSE         
+npm notice 2.0kB  README.md       
+npm notice 291B   dist/mutate.d.ts
+npm notice 30.8kB dist/mutate.js  
+npm notice 2.0kB  dist/types.d.ts 
+npm notice 11B    dist/types.js   
+npm notice 612B   package.json    
+npm notice === Tarball Details === 
+npm notice name:          schemafuzz                              
+npm notice version:       0.1.0                                   
+npm notice filename:      schemafuzz-0.1.0.tgz                    
+npm notice package size:  10.8 kB                                 
+npm notice unpacked size: 42.3 kB                                 
+npm notice shasum:        8b0bd645846435bf093da039cbff02d0e90d97dd
+npm notice integrity:     sha512-B40LOyGhaqIdQ[...]4LuiMBLqSn28Q==
+npm notice total files:   8                                       
+npm notice 
+schemafuzz-0.1.0.tgz
+exit=0
+$ git tag --list v0.1.0
+v0.1.0
+exit=0
+$ git ls-remote --tags origin | grep v0.1.0
+ade91176dd8636b02d42c716a14badec3bc49b8d	refs/tags/v0.1.0
+exit=0
+$ gh release view v0.1.0 --json isDraft,tagName
+{"isDraft":false,"tagName":"v0.1.0"}
+exit=0
+$ git log --oneline -6
+ade9117 docs: changelog 0.1.0 section, README installed-and-verified status
+70ea1bd feat: add scripts/prepush.sh, a gate that installs the package like a user
+e83aa6b feat: declare package entry point and bump to 0.1.0
+d501cda docs: day 9 close-out capture
+b34ab58 feat: integer is negated by substituting another type or offsetting
+f104d5e fix: allOf branch skip reasons are consulted, not discarded
+exit=0
+$ git status --short
+?? media/2026-09-28-day10.txt
+?? schemafuzz-0.1.0.tgz
+?? scripts/_capture-day10.sh
+exit=0
