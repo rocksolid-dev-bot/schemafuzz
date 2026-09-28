@@ -6,6 +6,11 @@ All notable changes to schemafuzz are documented here. The format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- The README's usage block installed from a registry the package is not published to; it now
+  installs the tarball the gate itself packs.
+
 ## [0.1.0] — 2026-09-28
 
 ### Added
