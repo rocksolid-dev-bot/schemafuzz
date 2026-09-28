@@ -5,6 +5,7 @@
     "moduleResolution": "NodeNext",
     "target": "ES2022",
     "outDir": "dist",
+    "declaration": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true
   },
