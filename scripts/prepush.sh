@@ -33,18 +33,21 @@ tarball=$(npm pack 2>/dev/null | tail -n1)
 rc=$?; echo "tarball=$tarball"; echo "exit=$rc"; [ "$rc" -ne 0 ] && status=1
 
 echo "--- 8: install tarball into a throwaway consumer outside the repo ---"
+srcdir="$(pwd)"
 abstarball="$(pwd)/$tarball"
 rm -rf /tmp/sf-consumer
-mkdir -p /tmp/sf-consumer && cd /tmp/sf-consumer && npm init -y >/dev/null 2>&1 && npm i "$abstarball"
+mkdir -p /tmp/sf-consumer && cd /tmp/sf-consumer && npm init -y >/dev/null 2>&1
+cp "$abstarball" "./$tarball"
+echo "\$ npm i ./$tarball"
+npm i "./$tarball"
 rc=$?; echo "exit=$rc"; [ "$rc" -ne 0 ] && status=1
 
 echo "--- 9: import the installed package and probe it ---"
 cd /tmp/sf-consumer
-node --input-type=module -e '
-import { mutate, MUTATOR_KEYWORDS } from "schemafuzz";
-console.log(MUTATOR_KEYWORDS.length);
-console.log(mutate({type:"string",minLength:3}, "abcdef").mutants.length);
-'
+echo "\$ node --input-type=module -e '"
+cat "$srcdir/scripts/usage-probe.mjs"
+echo "'"
+node --input-type=module -e "$(cat "$srcdir/scripts/usage-probe.mjs")"
 rc=$?; echo "exit=$rc"; [ "$rc" -ne 0 ] && status=1
 
 cd - >/dev/null

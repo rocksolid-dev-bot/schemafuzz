@@ -14,12 +14,11 @@ non-empty `skipped` list, rather than throwing.
 
 ## Usage
 
-Install the published package, then import it by name — this is the exact usage block
-from `scripts/prepush.sh`'s step 9, run against the packed `v0.1.0` tarball installed
-into a throwaway project outside the repo:
+schemafuzz is **not published to npm**. This block installs the tarball `npm pack` produces
+from this repo and is the exact command sequence `scripts/prepush.sh` runs at its step 9:
 
 ```
-$ npm i schemafuzz
+$ npm i ./schemafuzz-0.1.0.tgz
 $ node --input-type=module -e '
 import { mutate, MUTATOR_KEYWORDS } from "schemafuzz";
 console.log(MUTATOR_KEYWORDS.length);
