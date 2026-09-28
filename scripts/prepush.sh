@@ -53,6 +53,31 @@ rc=$?; echo "exit=$rc"; [ "$rc" -ne 0 ] && status=1
 cd - >/dev/null
 rm -f "$tarball"
 
-echo "--- 10: overall status ---"
+echo "--- 10: manifest falsification (main+exports stripped, /tmp/sf-consumer only) ---"
+manifest="/tmp/sf-consumer/node_modules/schemafuzz/package.json"
+backup="/tmp/sf-consumer-package.json.bak"
+cp "$manifest" "$backup"
+node -e '
+const fs = require("fs");
+const p = "/tmp/sf-consumer/node_modules/schemafuzz/package.json";
+const pkg = JSON.parse(fs.readFileSync(p, "utf8"));
+delete pkg.main;
+delete pkg.exports;
+fs.writeFileSync(p, JSON.stringify(pkg, null, 2) + "\n");
+console.log(JSON.stringify(pkg, null, 2));
+'
+echo "\$ node --input-type=module -e '"
+cat "$srcdir/scripts/usage-probe.mjs"
+echo "'"
+node --input-type=module -e "$(cat "$srcdir/scripts/usage-probe.mjs")"
+rc=$?; echo "exit=$rc"; [ "$rc" -eq 0 ] && status=1
+cp "$backup" "$manifest"
+echo "\$ node --input-type=module -e '"
+cat "$srcdir/scripts/usage-probe.mjs"
+echo "'"
+node --input-type=module -e "$(cat "$srcdir/scripts/usage-probe.mjs")"
+rc=$?; echo "exit=$rc"; [ "$rc" -ne 0 ] && status=1
+
+echo "--- 11: overall status ---"
 echo "overall exit=$status"
 exit $status
