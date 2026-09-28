@@ -54,4 +54,5 @@ cd - >/dev/null
 rm -f "$tarball"
 
 echo "--- 10: overall status ---"
+echo "overall exit=$status"
 exit $status
