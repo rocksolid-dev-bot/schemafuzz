@@ -1,0 +1,81 @@
+--- 1: node -v ---
+v18.19.1
+exit=0
+--- 2: npm ci ---
+
+added 52 packages, and audited 53 packages in 2s
+
+14 packages are looking for funding
+  run `npm fund` for details
+
+5 vulnerabilities (3 moderate, 1 high, 1 critical)
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+exit=0
+--- 3: npx tsc --noEmit ---
+exit=0
+--- 4: npm run build ---
+
+> schemafuzz@0.1.0 build
+> tsc
+
+exit=0
+--- 5: npm test ---
+
+> schemafuzz@0.1.0 test
+> vitest run
+
+
+ RUN  v2.1.9 /work/code
+
+stderr | test/oracle.test.ts > string constrained by two allOf branches (recursion site, not a mutator) > accepts the baseline
+strict mode: missing type "string" for keyword "minLength" at "#/allOf/1" (strictTypes)
+
+stderr | test/oracle.test.ts > object where one allOf branch nests into properties > accepts the baseline
+strict mode: missing type "object" for keyword "properties" at "#/allOf/1" (strictTypes)
+
+ ✓ test/oracle.test.ts (205 tests) 169ms
+ ✓ test/vendor.test.ts (113 tests) 50ms
+
+ Test Files  2 passed (2)
+      Tests  318 passed (318)
+   Start at  19:17:48
+   Duration  1.67s (transform 328ms, setup 0ms, collect 691ms, tests 220ms, environment 1ms, prepare 186ms)
+
+exit=0
+--- 6: sh scripts/invariants.sh ---
+--- no throws in src/ (errors are values) ---
+ok: no throws
+--- ajv is never imported by the shipped library ---
+ok: no ajv import
+note: mutator-keyword coverage is asserted by the coverage tests in test/oracle.test.ts, not here
+exit=0
+--- 7: npm pack ---
+tarball=schemafuzz-0.1.0.tgz
+exit=0
+--- 8: install tarball into a throwaway consumer outside the repo ---
+$ npm i ./schemafuzz-0.1.0.tgz
+
+added 1 package, and audited 2 packages in 404ms
+
+found 0 vulnerabilities
+exit=0
+--- 9: import the installed package and probe it ---
+$ node --input-type=module -e '
+import { mutate, MUTATOR_KEYWORDS } from "schemafuzz";
+console.log(MUTATOR_KEYWORDS.length);
+console.log(mutate({type:"string",minLength:3}, "abcdef").mutants.length);
+'
+19
+2
+exit=0
+--- 10: overall status ---
+fenced blocks total: 1
+captured-run blocks checked: 1
+lines checked: 8
+minimum checked lines required: 6
+unmatched: 0
+exit=0
