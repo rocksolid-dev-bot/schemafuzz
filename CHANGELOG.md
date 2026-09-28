@@ -6,8 +6,14 @@ All notable changes to schemafuzz are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0] — 2026-09-28
+
 ### Added
 
+- The package now exposes `mutate` and `MUTATOR_KEYWORDS` as an ESM entry point
+  (`"exports"`/`"main"`/`"types"` in `package.json`, `"declaration": true` in `tsconfig.json`)
+  with generated type declarations, and ships only `dist/` (`"files"` in `package.json`) — no
+  `test/`, `media/`, or `tsconfig.json` in the published tarball.
 - Oracle harness: `mutate(schema, baseline)` returns counterexample `mutants` plus `skipped`
   negations, and never throws. `ajv` is a devDependency used only by the tests, as an
   independent-method oracle; the library imports it nowhere.
@@ -71,3 +77,10 @@ All notable changes to schemafuzz are documented here. The format follows
 ### Removed
 
 - The orphaned `jsonTypeOf` helper and the comment that cited it.
+
+### Notes
+
+- `test/vendor/` vendors a slice of `json-schema-org/JSON-Schema-Test-Suite`
+  (MIT, Copyright (c) 2012 Julian Berman), pinned at commit
+  `5b0ee1613e45fcc2bddac00e07c19cd49b00d8a8`; `test/vendor/LICENSE` carries that licence and
+  stays in the repository even though `dist`-only packaging drops `test/` from the tarball.
