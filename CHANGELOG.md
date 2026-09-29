@@ -14,6 +14,9 @@ All notable changes to schemafuzz are documented here. The format follows
 - The tarball `npm pack` writes during the release gate is now ignored by git.
 - The gate's tarball cleanup now runs in the repository it packed from, so `npm pack`'s output
   no longer survives the run.
+- The release gate now reconciles the test suite's per-file counts against its own reported
+  total (`scripts/test-census.sh`), red when the breakdown is absent or does not sum, and this
+  check is itself falsified by two frozen fixtures in `scripts/falsify.sh`.
 
 ## [0.1.0] — 2026-09-28
 

@@ -1,0 +1,5 @@
+ ✓ test/oracle.test.ts (200 tests) 141ms
+ ✓ test/vendor.test.ts (113 tests) 71ms
+
+ Test Files  2 passed (2)
+      Tests  318 passed (318)

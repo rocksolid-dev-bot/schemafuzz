@@ -14,5 +14,13 @@ echo "--- falsify 2: green direction (current capture) ---"
 python3 "$root/scripts/check_readme_capture.py" "$capture"
 rc=$?; echo "exit=$rc"; [ "$rc" -ne 0 ] && status=1
 
+echo "--- falsify 3: census red on a component mismatch ---"
+sh "$root/scripts/test-census.sh" "$root/scripts/census-fixtures/mismatch.txt"
+rc=$?; echo "exit=$rc"; [ "$rc" -eq 0 ] && status=1
+
+echo "--- falsify 4: census red when the components are absent ---"
+sh "$root/scripts/test-census.sh" "$root/scripts/census-fixtures/absent.txt"
+rc=$?; echo "exit=$rc"; [ "$rc" -eq 0 ] && status=1
+
 echo "falsify overall exit=$status"
 exit $status

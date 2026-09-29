@@ -21,8 +21,8 @@ npm run build
 rc=$?; echo "exit=$rc"; [ "$rc" -ne 0 ] && status=1
 
 echo "--- 5: npm test ---"
-npm test
-rc=$?; echo "exit=$rc"; [ "$rc" -ne 0 ] && status=1
+npm test > /tmp/sf-test-output.txt 2>&1
+rc=$?; cat /tmp/sf-test-output.txt; echo "exit=$rc"; [ "$rc" -ne 0 ] && status=1
 
 echo "--- 6: sh scripts/invariants.sh ---"
 sh scripts/invariants.sh
@@ -78,6 +78,10 @@ rc=$?; echo "exit=$rc"; [ "$rc" -ne 0 ] && status=1
 cd "$srcdir"
 rm -f "$tarball"
 
-echo "--- 11: overall status ---"
+echo "--- 11: test census (per-file counts reconciled against the reported total) ---"
+sh scripts/test-census.sh /tmp/sf-test-output.txt
+rc=$?; echo "exit=$rc"; [ "$rc" -ne 0 ] && status=1
+
+echo "--- 12: overall status ---"
 echo "overall exit=$status"
 exit $status
