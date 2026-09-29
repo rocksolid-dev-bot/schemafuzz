@@ -11,6 +11,7 @@ All notable changes to schemafuzz are documented here. The format follows
 - The README's usage block installed from a registry the package is not published to; it now
   installs the tarball the gate itself packs.
 - The release gate's final step now prints its own exit status instead of a bare header.
+- The tarball `npm pack` writes during the release gate is now ignored by git.
 
 ## [0.1.0] — 2026-09-28
 
