@@ -50,9 +50,6 @@ echo "'"
 node --input-type=module -e "$(cat "$srcdir/scripts/usage-probe.mjs")"
 rc=$?; echo "exit=$rc"; [ "$rc" -ne 0 ] && status=1
 
-cd - >/dev/null
-rm -f "$tarball"
-
 echo "--- 10: manifest falsification (main+exports stripped, /tmp/sf-consumer only) ---"
 manifest="/tmp/sf-consumer/node_modules/schemafuzz/package.json"
 backup="/tmp/sf-consumer-package.json.bak"
@@ -77,6 +74,9 @@ cat "$srcdir/scripts/usage-probe.mjs"
 echo "'"
 node --input-type=module -e "$(cat "$srcdir/scripts/usage-probe.mjs")"
 rc=$?; echo "exit=$rc"; [ "$rc" -ne 0 ] && status=1
+
+cd "$srcdir"
+rm -f "$tarball"
 
 echo "--- 11: overall status ---"
 echo "overall exit=$status"

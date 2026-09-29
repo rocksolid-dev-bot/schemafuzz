@@ -12,6 +12,8 @@ All notable changes to schemafuzz are documented here. The format follows
   installs the tarball the gate itself packs.
 - The release gate's final step now prints its own exit status instead of a bare header.
 - The tarball `npm pack` writes during the release gate is now ignored by git.
+- The gate's tarball cleanup now runs in the repository it packed from, so `npm pack`'s output
+  no longer survives the run.
 
 ## [0.1.0] — 2026-09-28
 
